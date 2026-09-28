@@ -61,6 +61,15 @@ export const listProducts = async ({
     ...(await getCacheOptions("products")),
   }
 
+  const restQuery = { ...(queryParams || {}) }
+  delete restQuery.fields
+
+  const defaultFields =
+    "id,handle,title,thumbnail,*images,*variants.calculated_price,+variants.inventory_quantity,*variants.images,*variants.options,+metadata,+tags"
+  const fields = queryParams?.fields
+    ? `${defaultFields},${queryParams.fields}`
+    : defaultFields
+
   return sdk.client
     .fetch<{ products: HttpTypes.StoreProduct[]; count: number }>(
       `/store/products`,
@@ -70,9 +79,8 @@ export const listProducts = async ({
           limit,
           offset,
           region_id: region?.id,
-          fields:
-            "id,handle,title,thumbnail,*images,*variants.calculated_price,+variants.inventory_quantity,*variants.images,*variants.options,+metadata,+tags",
-          ...queryParams,
+          ...restQuery,
+          fields,
         },
         headers,
         next,
@@ -98,7 +106,7 @@ export const listProducts = async ({
  * It will then return the paginated products based on the page and limit parameters.
  */
 export const listProductsWithSort = async ({
-  page = 0,
+  page = 1,
   queryParams,
   sortBy = "created_at",
   countryCode,
@@ -129,7 +137,7 @@ export const listProductsWithSort = async ({
   const {
     response: { products },
   } = await listProducts({
-    pageParam: 0,
+    pageParam: 1,
     queryParams: {
       ...queryParams,
       ...(optionFilters.length ? { option_value_id: optionFilters } : {}),
@@ -170,7 +178,8 @@ export const listProductsWithSort = async ({
 
   const sortedProducts = sortProducts(filtered, sortBy)
 
-  const pageParam = (page - 1) * limit
+  const pageIndex = Math.max(page, 1)
+  const pageParam = (pageIndex - 1) * limit
 
   const filteredCount = sortedProducts.length
 

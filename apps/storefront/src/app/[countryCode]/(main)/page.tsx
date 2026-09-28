@@ -31,26 +31,23 @@ export default async function Home(props: {
     listCategories(),
   ])
 
-  if (!region) {
-    return null
-  }
-
-  const hasCollections = Boolean(collections?.length)
-  const featuredFallback = hasCollections
-    ? { products: [] }
-    : (
+  const featuredFallback = region
+    ? (
         await listProducts({
           countryCode,
           queryParams: { limit: 8 },
         })
       ).response
+    : { products: [] }
+
+  const hasCollections = Boolean(collections?.length)
 
   return (
     <>
       <Hero />
       <UniverseRail categories={categories || []} />
       <div className="py-12">
-        {hasCollections ? (
+        {hasCollections && region ? (
           <ul className="flex flex-col gap-x-6">
             <FeaturedProducts collections={collections} region={region} />
           </ul>
@@ -63,8 +60,9 @@ export default async function Home(props: {
               <InteractiveLink href="/store">View all</InteractiveLink>
             </div>
             <ul className="grid grid-cols-2 gap-x-6 gap-y-12 small:grid-cols-3 small:gap-y-16">
-              {featuredFallback.products.map((product) => (
-                <li key={product.id}>
+              {region &&
+                featuredFallback.products.map((product) => (
+                <li key={product.id || product.handle}>
                   <ProductPreview product={product} region={region} isFeatured />
                 </li>
               ))}

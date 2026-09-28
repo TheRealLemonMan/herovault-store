@@ -30,10 +30,10 @@ async function getRegionMap(cacheId: string) {
         "x-publishable-api-key": PUBLISHABLE_API_KEY!,
       },
       next: {
-        revalidate: 3600,
+        revalidate: 0,
         tags: [`regions-${cacheId}`],
       },
-      cache: "force-cache",
+      cache: "no-store",
     })
 
     if (!response.ok) {
@@ -44,14 +44,17 @@ async function getRegionMap(cacheId: string) {
 
     const { regions } = json
 
+    regionMapCache.regionMap = new Map()
+
     if (!regions?.length) {
-      return new Map<string, HttpTypes.StoreRegion>()
+      return regionMapCache.regionMap
     }
 
-    // Create a map of country codes to regions.
     regions.forEach((region: HttpTypes.StoreRegion) => {
       region.countries?.forEach((c) => {
-        regionMapCache.regionMap.set(c.iso_2 ?? "", region)
+        if (c.iso_2) {
+          regionMapCache.regionMap.set(c.iso_2.toLowerCase(), region)
+        }
       })
     })
 
