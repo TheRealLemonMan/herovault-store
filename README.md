@@ -28,6 +28,31 @@ Ahí se ve Home, catálogo, fichas y checkout. Deja las dos terminales abiertas.
 
 Esta `DATABASE_URL` es para evaluación del curso. El repositorio debería ser **privado**. Después de la nota, conviene cambiar la contraseña de Supabase.
 
+## Si los pasos manuales fallan: pide a un agente de IA que lo arranque
+
+En Windows (PowerShell, `nvm`, puertos, SSL de Supabase) el arranque manual a veces tira muchos errores y **no muestra** `http://localhost:8000`. Eso no significa que el proyecto esté roto.
+
+Abre este repo en **Cursor** (o un IDE con agente) y pégalo esto en el chat:
+
+```text
+Arranca HeroVault para verlo en el navegador.
+
+1. Usa Node 22 (nvm use 22 si existe).
+2. Si faltan, copia:
+   - apps/backend/.env.example → apps/backend/.env
+   - apps/storefront/.env.example → apps/storefront/.env.local
+3. En la raíz del repo: pnpm install (no uses npm).
+4. Si los puertos 9000 u 8000 ya están ocupados, reutilízalos o reinicia esos procesos.
+5. Arranca el backend Medusa: apps/backend → pnpm dev (puerto 9000).
+6. Arranca el storefront Next.js: apps/storefront → pnpm dev (puerto 8000).
+7. No ejecutes seed ni initial-data-seed (la base de Supabase del .env.example ya está poblada).
+8. Cuando ambos respondan, abre http://localhost:8000 (debe ir a /ec).
+
+Corrige errores de SSL (sslmode=no-verify), pnpm, Node o puertos ocupados y no pares hasta que la tienda cargue.
+```
+
+El agente puede activar Node, crear los `.env`, instalar con pnpm y levantar las dos terminales. Cuando termine, abre **http://localhost:8000**.
+
 ---
 
 ## 0. Lo que vas a instalar (una sola vez en tu PC)
@@ -214,6 +239,9 @@ Puerto **8000**. Abre [http://localhost:8000](http://localhost:8000) → debe ir
 5. cd apps/backend && pnpm dev     (puerto 9000)
 6. cd apps/storefront && pnpm dev  (puerto 8000)
 7. Abrir http://localhost:8000
+
+Si falla: abre el repo en Cursor y pega el prompt de la sección
+«Si los pasos manuales fallan».
 ```
 
 ---
