@@ -10,22 +10,23 @@ El storefront **no** usa `@supabase/supabase-js`. Solo habla con Medusa en el pu
 Navegador → Next.js :8000 → Medusa :9000 → Supabase Session Pooler :5432
 ```
 
-Los archivos `.env` **no se suben a Git**. Después de clonar hay que crearlos. Si omites ese paso, el proyecto no arranca.
+Los archivos `.env` **no se copian solos**. Hay que crearlos desde `.env.example` (paso 3). Esas plantillas ya traen la **base de Supabase poblada** de este proyecto para que, al arrancar, se vea el mismo catálogo.
 
-## Cómo se ve la página en tu pantalla
+## Cómo se ve la página en tu pantalla (ruta para evaluar)
 
-GitHub **no** abre la tienda. Al clonar solo bajas el código. Para **ver HeroVault igual que en la demo** (figuras, `/ec`, USD, carrito):
+No hace falta crear otro Supabase ni correr seed. El código + las plantillas apuntan a la base donde ya están las 37 figuras, `/ec` y USD.
 
-1. Sigue los pasos 0–8 de este README (Supabase propio + seed + dos terminales).
-2. Con el backend en `:9000` y el storefront en `:8000`, abre el navegador en:
+1. Clona, instala Node 22 + pnpm, copia los `.env.example` (pasos 0, 1 y 3).
+2. `pnpm install` en la raíz.
+3. Terminal 1: `cd apps/backend` → `pnpm dev` (puerto **9000**).
+4. Terminal 2: `cd apps/storefront` → `pnpm dev` (puerto **8000**).
+5. Abre el navegador en **http://localhost:8000** (redirige a `/ec`).
 
-**http://localhost:8000**
+Ahí se ve Home, catálogo, fichas y checkout. Deja las dos terminales abiertas.
 
-Eso redirige a `/ec`. Ahí está el Home, el catálogo y el checkout.
+**No ejecutes** `initial-data-seed.ts` sobre esta base compartida (duplicaría datos). El seed solo sirve si montas un Supabase vacío (paso 2, opcional).
 
-El catálogo **sí es el de este proyecto**: las 37 figuras, imágenes y metadatos van en el repo y se cargan con el seed. No hace falta el computador del autor ni su base de datos. Cada persona que clona levanta **la misma tienda en su propia PC**.
-
-Deja las dos terminales abiertas mientras navegas. Si las cierras, `localhost` deja de responder.
+Esta `DATABASE_URL` es para evaluación del curso. El repositorio debería ser **privado**. Después de la nota, conviene cambiar la contraseña de Supabase.
 
 ---
 
@@ -36,7 +37,7 @@ Deja las dos terminales abiertas mientras navegas. Si las cierras, `localhost` d
 | Git | cualquiera reciente | clonar |
 | Node.js | **22** (también vale 20.19+) | runtime |
 | pnpm | **10.11.1** (vía Corepack) | instalar dependencias |
-| Cuenta [Supabase](https://supabase.com) | free | base de datos Postgres |
+| Cuenta [Supabase](https://supabase.com) | free | solo si montas una base **vacía** (paso 2). Para evaluar, usa la `DATABASE_URL` de `.env.example` |
 
 No instales Redis. No uses `npm install` ni `yarn`.
 
@@ -72,7 +73,9 @@ La raíz del repo **es** el monorepo (`apps/backend` y `apps/storefront`). Todos
 
 ---
 
-## 2. Crear un proyecto Supabase (base vacía)
+## 2. (Opcional) Crear tu propio Supabase vacío
+
+Solo si quieres una base **tuya**, no la de demostración. Para ver el proyecto tal cual está entregado, **salta este paso**.
 
 1. Entra a [https://supabase.com/dashboard](https://supabase.com/dashboard) → **New project**.
 2. Espera a que el proyecto esté **Healthy**.
@@ -118,21 +121,15 @@ Copy-Item apps\backend\.env.example apps\backend\.env
 Copy-Item apps\storefront\.env.example apps\storefront\.env.local
 ```
 
-### 3.1 Editar `apps/backend/.env`
+### 3.1 `apps/backend/.env`
 
-Pega tu `DATABASE_URL` de Supabase (paso 2). Deja el resto igual (`JWT_SECRET=supersecret` sirve para evaluación local).
+La plantilla **ya incluye** la `DATABASE_URL` de Supabase con el catálogo cargado. Si seguiste el `cp` / `Copy-Item`, no hace falta pegar nada más.
 
 Confirma que **no** hay ninguna línea `REDIS_URL`.
 
-### 3.2 Dejar `apps/storefront/.env.local` a medias
+### 3.2 `apps/storefront/.env.local`
 
-Por ahora deja:
-
-- `NEXT_PUBLIC_MEDUSA_BACKEND_URL=http://localhost:9000`
-- `NEXT_PUBLIC_DEFAULT_REGION=ec`
-- `NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=pk_...` **todavía placeholder**
-
-La key real se copia **después** del seed (paso 6).
+La plantilla **ya incluye** la Publishable API Key (`pk_…`) que corresponde a esa misma base. Déjala así, con `NEXT_PUBLIC_DEFAULT_REGION=ec`.
 
 ---
 
@@ -148,90 +145,51 @@ Esto instala backend y storefront. Tarda varios minutos la primera vez.
 
 ---
 
-## 5. Migrar la base e crear usuario admin
+## 5–7. Solo si usaste un Supabase vacío (paso 2)
 
-Abre una terminal **en `apps/backend`**:
+Si copiaste `.env.example` y usas la base de demostración, **salta a 8**. No migres ni siembres encima.
+
+Si montaste una base vacía:
 
 ```bash
 cd apps/backend
 npx medusa db:migrate
 npx medusa user -e admin@herovault.test -p supersecret
-```
-
-- `db:migrate` crea las tablas Medusa (`product`, `region`, `cart`, `order`, etc.) en Supabase.
-- El usuario admin es `admin@herovault.test` / `supersecret` (cámbialo si quieres).
-
-Si `db:migrate` falla con SSL / certificado, revisa que `DATABASE_URL` termine en `?sslmode=no-verify` y que `apps/backend/medusa-config.ts` tenga `ssl: { rejectUnauthorized: false }` (ya viene en el repo).
-
----
-
-## 6. Sembrar catálogo, región Ecuador (USD) y envíos
-
-Sigue **dentro de `apps/backend`**. El backend **no** hace falta que esté corriendo: `medusa exec` arranca su propio proceso.
-
-**Primera vez (base vacía) — obligatorio:**
-
-```bash
 npx medusa exec ./src/migration-scripts/initial-data-seed.ts
-```
-
-Eso crea canal de ventas, región USD, Ecuador (`ec`), opciones de envío (Standard / Express), categorías y las 37 figuras.
-
-**Después, para alinear specs / Ecuador / catálogo (se puede repetir):**
-
-```bash
 npx medusa exec ./src/scripts/seed-collectibles.ts
 ```
 
-No vuelvas a ejecutar `initial-data-seed.ts` sobre una base que ya tiene datos: fallará por duplicados.
+Luego copia la `pk_` nueva de Admin → Settings → Publishable API Keys a `.env.local`.
+
+`initial-data-seed.ts` **no** se corre dos veces sobre la misma base.
 
 ---
 
-## 7. Copiar la Publishable API Key al storefront
+## 8. Arrancar backend y storefront
 
-1. Arranca **solo el backend** (deja esta terminal abierta):
+**Terminal 1:**
 
 ```bash
 cd apps/backend
 pnpm dev
 ```
 
-Espera a ver que escucha el puerto **9000** (puede tardar 1–2 minutos).
+Espera el puerto **9000**. Admin: [http://localhost:9000/app](http://localhost:9000/app) (si existe el usuario local: `admin@herovault.test` / `supersecret`).
 
-2. Abre [http://localhost:9000/app](http://localhost:9000/app)
-3. Entra con `admin@herovault.test` / `supersecret`
-4. **Settings → Developer → Publishable API Keys** (o **API key**)
-5. Copia la key que empieza por `pk_`
-6. Pégala en `apps/storefront/.env.local`:
-
-```env
-NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=pk_la_key_real_aqui
-NEXT_PUBLIC_DEFAULT_REGION=ec
-NEXT_PUBLIC_MEDUSA_BACKEND_URL=http://localhost:9000
-```
-
-Sin esta key el catálogo sale vacío o el middleware no puede leer regiones.
-
----
-
-## 8. Arrancar el storefront (segunda terminal)
-
-**Nueva** terminal, no cierres el backend:
+**Terminal 2:**
 
 ```bash
 cd apps/storefront
 pnpm dev
 ```
 
-Puerto **8000**.
-
-Abre [http://localhost:8000](http://localhost:8000). Debe redirigir a **`/ec`**.
+Puerto **8000**. Abre [http://localhost:8000](http://localhost:8000) → debe ir a **`/ec`**.
 
 | URL | Qué es |
 |-----|--------|
 | http://localhost:8000/ec | Home (Ecuador, USD) |
 | http://localhost:8000/ec/store | Catálogo |
-| http://localhost:8000/dk | Dinamarca (sigue existiendo; no es el default) |
+| http://localhost:8000/dk | Dinamarca (no es el default) |
 | http://localhost:9000 | API Medusa |
 | http://localhost:9000/app | Admin |
 
@@ -251,17 +209,11 @@ Abre [http://localhost:8000](http://localhost:8000). Debe redirigir a **`/ec`**.
 ```text
 1. git clone … && cd herovault-store
 2. Node 22 + corepack/pnpm
-3. Crear proyecto Supabase → Session pooler :5432 → DATABASE_URL
-4. Copiar .env.example → .env y .env.local
-5. pnpm install          (raíz)
-6. cd apps/backend
-   npx medusa db:migrate
-   npx medusa user -e admin@herovault.test -p supersecret
-   npx medusa exec ./src/migration-scripts/initial-data-seed.ts
-   npx medusa exec ./src/scripts/seed-collectibles.ts
-   pnpm dev              (puerto 9000)
-7. Copiar pk_ … a apps/storefront/.env.local
-8. cd apps/storefront && pnpm dev   (puerto 8000)
+3. Copiar .env.example → .env y .env.local  (ya traen Supabase + pk_)
+4. pnpm install          (raíz)
+5. cd apps/backend && pnpm dev     (puerto 9000)
+6. cd apps/storefront && pnpm dev  (puerto 8000)
+7. Abrir http://localhost:8000
 ```
 
 ---
@@ -274,7 +226,7 @@ Abre [http://localhost:8000](http://localhost:8000). Debe redirigir a **`/ec`**.
 | `SELF_SIGNED_CERT_IN_CHAIN` | `sslmode=require` en Node | Usa `?sslmode=no-verify` |
 | `Tenant or user not found` | URI de Transaction pooler o user `postgres` | Session pooler, user `postgres.REF`, puerto 5432 |
 | `No sales channel found. Run the initial seed first.` | Solo corriste `seed-collectibles` | Corre `initial-data-seed.ts` en base vacía |
-| Catálogo vacío / error de regiones | `pk_` de ejemplo | Paso 7 |
+| Catálogo vacío / error de regiones | No copiaste `.env.local` o cambiaste la `pk_` | Vuelve a copiar `apps/storefront/.env.example` |
 | `/` redirige a `/dk` | Storefront arrancó **antes** de sembrar `ec`, o falta `NEXT_PUBLIC_DEFAULT_REGION=ec` | Siembra, pon `ec` en `.env.local`, **reinicia** Next |
 | Checkout sin envío | No se sembró fulfillment | `initial-data-seed.ts` |
 | `redisUrl not found` (warning amarillo) | Normal | No agregues `REDIS_URL` |
